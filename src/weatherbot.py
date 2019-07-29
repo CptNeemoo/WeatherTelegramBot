@@ -27,7 +27,16 @@ def error(bot, update, error):
 
 
 def weather_now(bot, update, args):
-    text_location = "".join(str(x) for x in args)
+    if len(args) > 0:
+        text_location = "".join(str(x) for x in args)
+    else:
+        chat_id = update.message.chat_id
+        if chat_id in user_data:
+            text_location = user_data.get(chat_id)
+        else:
+            update.message.reply_text("Please set the location first with the command /location <place>. Example: "
+                                      "/location London")
+            return
     observation = owm.weather_at_place(text_location)
     weather = observation.get_weather()
     update.message.reply_text(print_weather(weather, text_location))
@@ -45,7 +54,9 @@ def print_weather(weather, place):
     text_temp = str(convert_temp)
     text_wind = str(convert_wind)
     text_humidity = str(convert_humidity)
+    status = weather.get_status()
     result_string += "Weather in : " + place + ' at ' + date_time.strftime("%d.%m.%y %H:%M") + "\n"
+    result_string += status + "\n"
     result_string += "Temperature, celsius: " + text_temp + "\n"
     result_string += "Wind speed, m/s: " + text_wind + "\n"
     result_string += "Humidity, %: " + text_humidity + "\n"
@@ -54,15 +65,61 @@ def print_weather(weather, place):
 
 
 def weather_5day(bot, update, args):
-    text_location = "".join(str(x) for x in args)
+    if len(args) > 0:
+        text_location = "".join(str(x) for x in args)
+    else:
+        chat_id = update.message.chat_id
+        if chat_id in user_data:
+            text_location = user_data.get(chat_id)
+        else:
+            update.message.reply_text("Please set the location first with the command /location <place>. Example: "
+                                      "/location London")
+            return
     fc = owm.three_hours_forecast(text_location)
     f = fc.get_forecast()
     f.actualize()
     weathers = f.get_weathers()
-    result_string = ""
     for weather in weathers:
-        result_string += print_weather(weather, text_location)
-    update.message.reply_text(result_string)
+        update.message.reply_text(print_weather(weather, text_location))
+
+
+def weather_at(bot, update, args):
+    if len(args) == 2:
+        text_location = str(args[0])
+        time_string = str(args[1])
+        datetime_time = datetime.strptime(time_string, '%H:%M').time()
+    else:
+        if len(args) == 1:
+            arg = str(args[0])
+            if has_numbers(arg):
+                time_string = arg
+                datetime_time_temp = datetime.strptime(time_string, '%H:%M').time()
+                datetime_time = datetime.combine(datetime.today(), datetime_time_temp)
+                chat_id = update.message.chat_id
+                if chat_id in user_data:
+                    text_location = user_data.get(chat_id)
+                else:
+                    update.message.reply_text("Please set the location first with the command /location <place>. "
+                                              "Example: /location London")
+                    return
+            else:
+                weather_now(bot, update, str(args[0]))
+                return
+        else:
+            if len(args) == 0:
+                weather_now(bot, update, args)
+                return
+            else:
+                update.message.reply_text("Wrong input. Please type something like /forecast 18:00 or /forecast "
+                                          "London 18:00")
+                return
+    fc = owm.three_hours_forecast(text_location)
+    f = fc.get_weather_at(datetime_time)
+    update.message.reply_text(print_weather(f, text_location))
+
+
+def has_numbers(input_string):
+    return any(char.isdigit() for char in input_string)
 
 
 def subscribe(bot, update):
@@ -85,8 +142,8 @@ def unsubscribe(bot, update):
 def send_subscription(bot, job):
     i = 0
     for chat_id in user_data.keys():
-        place = user_data.get(chat_id);
-        fc = owm.three_hours_forecast(place, )
+        place = user_data.get(chat_id)
+        fc = owm.three_hours_forecast(place)
         f = fc.get_forecast()
         weathers = f.get_weathers()
         result_string = ""
@@ -116,13 +173,14 @@ def main():
 
     job_queue = updater.job_queue
 
-    dp.add_handler(CommandHandler("start", help_handler()))
+    dp.add_handler(CommandHandler("start", help_handler))
     dp.add_handler(CommandHandler("help", help_handler))
     dp.add_handler(CommandHandler("subscribe", subscribe))
     dp.add_handler(CommandHandler("unsubscribe", unsubscribe))
     dp.add_handler(CommandHandler("location", location, pass_args=True))
     dp.add_handler(CommandHandler("now", weather_now, pass_args=True))
     dp.add_handler(CommandHandler("week", weather_5day, pass_args=True))
+    dp.add_handler(CommandHandler("forecast", weather_at, pass_args=True))
 
     job_queue.run_daily(send_subscription, datetime(2019, 0o7, 0o7, 0o7, 00, 00))
 
