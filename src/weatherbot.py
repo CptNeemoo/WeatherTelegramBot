@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 def start(bot, update):
     update.message.reply_text("Hey, I'm a weather bot! Type /now <city> to get information about the "
                               "weather in your location. Example: /now London\n"
-                              + "You can fing available commands in /help")
+                              + "You can find available commands in /help")
 
 
 def help_handler(bot, update):
