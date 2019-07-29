@@ -17,9 +17,20 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 logger = logging.getLogger(__name__)
 
 
-def help_handler(bot, update):
+def start(bot, update):
     update.message.reply_text("Hey, I'm a weather bot! Type /now <city> to get information about the "
-                              "weather in your location. Example: /now London")
+                              "weather in your location. Example: /now London\n"
+                              + "You can fing available commands in /help")
+
+
+def help_handler(bot, update):
+    update.message.reply_text("Available commands:\n" +
+                              "/location <city> - set your current city\n" +
+                              "/subscribe - subscribe to the daily weather forecast\n" +
+                              "/unsubscribe - unsubscribe from it\n" +
+                              "/now - current weather\n" +
+                              "/forecast - forecast at any particular time of day. Example: /forecast 20:00\n" +
+                              "/week - forecast for 5 days/every 3 hours")
 
 
 def error(bot, update, error):
@@ -173,7 +184,7 @@ def main():
 
     job_queue = updater.job_queue
 
-    dp.add_handler(CommandHandler("start", help_handler))
+    dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("help", help_handler))
     dp.add_handler(CommandHandler("subscribe", subscribe))
     dp.add_handler(CommandHandler("unsubscribe", unsubscribe))
